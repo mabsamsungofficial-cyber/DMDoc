@@ -5,6 +5,7 @@ import { THEME_KEY } from './lib/utils';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import PublicDocPage from './pages/PublicDocPage';
+import { OfflineBanner } from './components/PwaControls';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -22,6 +23,16 @@ export default function App() {
       localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
     } catch {
       // Ignore storage errors
+    }
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.setAttribute('content', dark ? '#090D18' : '#EEF3FA');
+    }
+    const iosStatusMeta = document.querySelector(
+      'meta[name="apple-mobile-web-app-status-bar-style"]'
+    );
+    if (iosStatusMeta) {
+      iosStatusMeta.setAttribute('content', dark ? 'black-translucent' : 'default');
     }
   }, [dark]);
 
@@ -87,6 +98,7 @@ export default function App() {
           element={<Navigate to={session ? '/admin' : '/login'} replace />}
         />
       </Routes>
+      <OfflineBanner dark={dark} />
     </BrowserRouter>
   );
 }

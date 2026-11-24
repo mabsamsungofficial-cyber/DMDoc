@@ -12,7 +12,6 @@ import {
   Lock,
   Globe,
   Sparkles,
-  FileText,
   Smartphone,
   LayoutDashboard,
   RefreshCw,
@@ -42,6 +41,12 @@ import {
   LiquidGlassCard,
   LiquidGlassSheet,
 } from '../components/LiquidGlass';
+import { DMDocLogo } from '../components/DMDocLogo';
+import {
+  IosInstallModal,
+  PwaInstallButton,
+  usePwaInstall,
+} from '../components/PwaControls';
 
 const DEFAULT_SETTINGS = {
   id: 'global',
@@ -72,6 +77,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
   const [copiedBody, setCopiedBody] = useState(false);
   const [toast, setToast] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const { canInstall, promptInstall, iosHintOpen, closeIosHint } = usePwaInstall();
 
   const [formTitle, setFormTitle] = useState('');
   const [formSlug, setFormSlug] = useState('');
@@ -324,17 +330,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
           style={getGlassStyle(dark, 'pill')}
         >
           <div className="flex items-center gap-2 pl-1">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-full text-white"
-              style={{
-                background:
-                  'linear-gradient(145deg, #38BDF8 0%, #007AFF 55%, #5856D6 100%)',
-                boxShadow:
-                  'inset 0 1px 1px rgba(255,255,255,0.55), 0 4px 12px rgba(0,122,255,0.35)',
-              }}
-            >
-              <FileText className="h-4 w-4" />
-            </div>
+            <DMDocLogo className="h-8 w-8 shrink-0" />
             <span className="hidden text-[15px] font-semibold tracking-[-0.02em] sm:inline">
               DMDoc
             </span>
@@ -397,6 +393,9 @@ export default function AdminPage({ user, dark, onToggleDark }) {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {canInstall && (
+              <PwaInstallButton dark={dark} onClick={promptInstall} />
+            )}
             <button
               type="button"
               onClick={onToggleDark}
@@ -1206,6 +1205,12 @@ export default function AdminPage({ user, dark, onToggleDark }) {
           {toast}
         </div>
       )}
+
+      <IosInstallModal
+        isOpen={iosHintOpen}
+        onClose={closeIosHint}
+        dark={dark}
+      />
     </div>
   );
 }

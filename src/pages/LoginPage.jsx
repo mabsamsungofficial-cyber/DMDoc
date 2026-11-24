@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AmbientBackdrop, LiquidGlassCard } from '../components/LiquidGlass';
+import { DMDocLogo } from '../components/DMDocLogo';
 
 export default function LoginPage({ dark }) {
   const [email, setEmail] = useState('');
@@ -35,15 +36,7 @@ export default function LoginPage({ dark }) {
       <AmbientBackdrop dark={dark} />
       <LiquidGlassCard dark={dark} className="anim-view w-full max-w-sm p-6">
         <div className="mb-6 flex items-center gap-2.5">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white"
-            style={{
-              background: 'linear-gradient(145deg, #38BDF8 0%, #007AFF 55%, #5856D6 100%)',
-              boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.5), 0 6px 16px rgba(0,122,255,0.35)',
-            }}
-          >
-            <FileText className="h-4 w-4" />
-          </div>
+          <DMDocLogo className="h-9 w-9 shrink-0" />
           <h1 className="text-[19px] font-bold tracking-[-0.02em]">DMDoc</h1>
         </div>
 
