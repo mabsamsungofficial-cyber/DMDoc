@@ -3,18 +3,18 @@ import React from 'react';
 export function MabArenaBrand({ dark, size = 'md', className = '' }) {
   const sizes = {
     sm: {
-      label: 'text-[10px] tracking-[0.08em]',
-      logo: 'h-[13px]',
+      label: 'text-[9px] tracking-[0.08em]',
+      logo: 'h-[9.5px]',
       gap: 'gap-1',
     },
     md: {
-      label: 'text-[11px] tracking-[0.08em]',
-      logo: 'h-[16px]',
-      gap: 'gap-1.5',
+      label: 'text-[10px] tracking-[0.08em]',
+      logo: 'h-[11px]',
+      gap: 'gap-1',
     },
     lg: {
-      label: 'text-[12px] tracking-[0.1em]',
-      logo: 'h-[19px]',
+      label: 'text-[10.5px] tracking-[0.09em]',
+      logo: 'h-[13px]',
       gap: 'gap-1.5',
     },
   };
