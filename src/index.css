@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --apple-spring: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html,
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+@keyframes viewEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes backdropEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheetEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes toastEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(-50%, 10px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+
+.anim-view {
+  animation: viewEnter 260ms var(--apple-spring) both;
+}
+
+.anim-backdrop {
+  animation: backdropEnter 200ms ease-out both;
+}
+
+.anim-sheet {
+  animation: sheetEnter 300ms var(--apple-spring) both;
+}
+
+.anim-modal {
+  animation: modalEnter 220ms var(--apple-spring) both;
+}
+
+.anim-toast {
+  animation: toastEnter 240ms var(--apple-spring) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-view,
+  .anim-backdrop,
+  .anim-sheet,
+  .anim-modal,
+  .anim-toast {
+    animation: none !important;
+    transition: none !important;
+  }
+}
