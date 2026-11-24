@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, ArrowUpRight, Zap } from 'lucide-react';
-import { APPLE_SPRING, getGlassStyle } from '../lib/utils';
+import { X, Sparkles, ArrowUpRight, Zap, Copy, Check } from 'lucide-react';
+import { APPLE_SPRING, copyTextSafe, getGlassStyle } from '../lib/utils';
 
 export function AmbientBackdrop({ dark }) {
   return (
@@ -60,7 +60,7 @@ export function LiquidGlassCard({ dark, className = '', children }) {
             : `radial-gradient(280px circle at ${sheen.x}% ${sheen.y}%, rgba(255,255,255,0.65), transparent 65%)`,
         }}
       />
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 min-w-0">{children}</div>
     </div>
   );
 }
@@ -225,55 +225,310 @@ export function AppleSpringSwitch({ checked, onChange, dark }) {
   );
 }
 
-function renderFormattedLine(line, lineIndex, dark) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = line.split(urlRegex);
-  return parts.map((part, idx) => {
-    if (part.match(/^https?:\/\//)) {
-      return (
-        <a
-          key={`${lineIndex}-${idx}`}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`underline underline-offset-2 break-all ${
-            dark
-              ? 'text-[#64D2FF] decoration-[#64D2FF]/40 hover:text-[#9BE4FF]'
-              : 'text-[#007AFF] decoration-[#007AFF]/35 hover:text-[#0056CC]'
+export function LiquidGlassConfirmModal({
+  isOpen,
+  title,
+  description,
+  cancelLabel = 'Cancel',
+  confirmLabel = 'Confirm',
+  destructive = true,
+  onCancel,
+  onConfirm,
+  dark,
+}) {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onCancel]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="anim-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+      style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="anim-modal w-full max-w-[290px] overflow-hidden rounded-[26px] text-center"
+        style={getGlassStyle(dark, 'sheet')}
+      >
+        <div className="px-5 pt-5 pb-4">
+          <h3 className="break-words [overflow-wrap:anywhere] text-[16px] font-semibold tracking-[-0.015em]">
+            {title}
+          </h3>
+          {description && (
+            <p
+              className={`mt-1.5 text-[12px] leading-relaxed ${
+                dark ? 'text-white/65' : 'text-[#515154]'
+              }`}
+            >
+              {description}
+            </p>
+          )}
+        </div>
+        <div
+          className={`grid grid-cols-2 border-t ${
+            dark ? 'border-white/12' : 'border-black/[0.08]'
           }`}
         >
-          {part}
-        </a>
+          <button
+            type="button"
+            onClick={onCancel}
+            className={`border-r py-3 text-[14px] font-medium transition-colors ${
+              dark
+                ? 'border-white/12 text-[#64D2FF] hover:bg-white/[0.06]'
+                : 'border-black/[0.08] text-[#007AFF] hover:bg-black/[0.03]'
+            }`}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`py-3 text-[14px] font-semibold transition-colors ${
+              destructive
+                ? dark
+                  ? 'text-[#FF453A] hover:bg-[#FF453A]/10'
+                  : 'text-[#FF3B30] hover:bg-[#FF3B30]/8'
+                : dark
+                  ? 'text-[#64D2FF] hover:bg-white/[0.06]'
+                  : 'text-[#007AFF] hover:bg-black/[0.03]'
+            }`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const URL_CANDIDATE_REGEX =
+  /(https?:\/\/[^\s<>()]+|www\.[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:[/?#][^\s<>()]*)?|(?:[a-zA-Z0-9-]+\.)+(?:co\.in|co\.uk|com\.au|org\.in|ac\.in|com|in|org|net|io|co|dev|app|ai|me|xyz|info|biz|edu|gov|uk|us|ca|de|fr|au|jp|sg|ae|pk|bd|np|ly|gg|to|tv|cc|sh|so|fm|link|live|online|site|store|tech|cloud|pro|club|blog|shop|page|news|wiki)(?:[/?#][^\s<>()]*)?)/gi;
+
+function renderTextWithLinks(text, keyPrefix, dark) {
+  const nodes = [];
+  let lastIndex = 0;
+  URL_CANDIDATE_REGEX.lastIndex = 0;
+  let match;
+
+  while ((match = URL_CANDIDATE_REGEX.exec(text)) !== null) {
+    const rawMatch = match[0];
+    const start = match.index;
+    const prevChar = start > 0 ? text[start - 1] : '';
+
+    if (prevChar && /[a-zA-Z0-9@._/-]/.test(prevChar)) {
+      continue;
+    }
+
+    let cleanUrl = rawMatch;
+    let trailing = '';
+    while (cleanUrl.length > 0 && /[.,;:!?)]}$'"]/.test(cleanUrl[cleanUrl.length - 1])) {
+      trailing = cleanUrl[cleanUrl.length - 1] + trailing;
+      cleanUrl = cleanUrl.slice(0, -1);
+    }
+
+    if (!cleanUrl) continue;
+
+    if (start > lastIndex) {
+      nodes.push(
+        <React.Fragment key={`${keyPrefix}-txt-${lastIndex}`}>
+          {text.slice(lastIndex, start)}
+        </React.Fragment>
       );
     }
-    return <React.Fragment key={`${lineIndex}-${idx}`}>{part}</React.Fragment>;
+
+    const href = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
+    nodes.push(
+      <a
+        key={`${keyPrefix}-url-${start}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`underline underline-offset-2 [overflow-wrap:anywhere] ${
+          dark
+            ? 'text-[#64D2FF] decoration-[#64D2FF]/40 hover:text-[#9BE4FF]'
+            : 'text-[#007AFF] decoration-[#007AFF]/35 hover:text-[#0056CC]'
+        }`}
+      >
+        {cleanUrl}
+      </a>
+    );
+
+    if (trailing) {
+      nodes.push(
+        <React.Fragment key={`${keyPrefix}-trail-${start}`}>{trailing}</React.Fragment>
+      );
+    }
+
+    lastIndex = start + rawMatch.length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(
+      <React.Fragment key={`${keyPrefix}-end-${lastIndex}`}>
+        {text.slice(lastIndex)}
+      </React.Fragment>
+    );
+  }
+
+  return nodes.length > 0 ? nodes : text;
+}
+
+function renderFormattedLine(line, lineIndex, dark) {
+  const inlineCodeParts = line.split(/(`[^`\n]+`)/g);
+  return inlineCodeParts.map((part, idx) => {
+    if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
+      return (
+        <code
+          key={`${lineIndex}-code-${idx}`}
+          className={`mx-0.5 rounded-[7px] px-1.5 py-0.5 font-mono text-[13px] [overflow-wrap:anywhere] ${
+            dark
+              ? 'bg-white/12 text-[#7DD3FC] border border-white/12'
+              : 'bg-[#0F172A]/[0.07] text-[#0F172A] border border-black/[0.06]'
+          }`}
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return (
+      <React.Fragment key={`${lineIndex}-seg-${idx}`}>
+        {renderTextWithLinks(part, `${lineIndex}-${idx}`, dark)}
+      </React.Fragment>
+    );
   });
 }
 
-export function DocContentRenderer({ content, dark }) {
-  const lines = (content || '').split('\n');
+function CodeBlock({ code, lang, dark }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    copyTextSafe(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+
   return (
     <div
-      className={`space-y-2.5 text-[15px] leading-[1.58] tracking-[-0.01em] ${
+      className={`my-2 w-full max-w-full overflow-hidden rounded-[16px] border ${
+        dark
+          ? 'bg-[#070B14]/85 border-white/12 text-[#E2E8F0]'
+          : 'bg-[#0F172A]/[0.92] border-white/25 text-[#F8FAFC]'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3.5 py-2">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-white/55">
+          {lang || 'code'}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/85 transition-colors hover:bg-white/20 active:scale-95"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3 text-[#34C759]" />
+              <span>Copied</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="overflow-x-auto px-3.5 py-3 font-mono text-[13px] leading-[1.55]">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+function parseDocBlocks(content) {
+  const lines = (content || '').split('\n');
+  const blocks = [];
+  let inCode = false;
+  let codeLang = '';
+  let codeLines = [];
+
+  lines.forEach((line, idx) => {
+    const fenceMatch = line.match(/^\s*```([a-zA-Z0-9_+-]*)\s*$/);
+    if (fenceMatch && !inCode) {
+      inCode = true;
+      codeLang = fenceMatch[1] || '';
+      codeLines = [];
+      return;
+    }
+    if (inCode && /^\s*```\s*$/.test(line)) {
+      blocks.push({ type: 'code', lang: codeLang, code: codeLines.join('\n'), key: `code-${idx}` });
+      inCode = false;
+      codeLang = '';
+      codeLines = [];
+      return;
+    }
+    if (inCode) {
+      codeLines.push(line);
+      return;
+    }
+    blocks.push({ type: 'line', text: line, key: `line-${idx}` });
+  });
+
+  if (inCode) {
+    blocks.push({
+      type: 'code',
+      lang: codeLang,
+      code: codeLines.join('\n'),
+      key: `code-eof`,
+    });
+  }
+
+  return blocks;
+}
+
+export function DocContentRenderer({ content, dark }) {
+  const blocks = parseDocBlocks(content);
+  return (
+    <div
+      className={`min-w-0 space-y-2.5 text-[15px] leading-[1.58] tracking-[-0.01em] break-words [overflow-wrap:anywhere] ${
         dark ? 'text-white/90' : 'text-[#1D1D1F]'
       }`}
     >
-      {lines.map((line, index) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <div key={index} className="h-1.5" />;
+      {blocks.map((block, index) => {
+        if (block.type === 'code') {
+          return <CodeBlock key={block.key} code={block.code} lang={block.lang} dark={dark} />;
+        }
+        const trimmed = block.text.trim();
+        if (!trimmed) return <div key={block.key} className="h-1.5" />;
         if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
           return (
-            <div key={index} className="flex items-start gap-2.5 pl-0.5">
+            <div key={block.key} className="flex min-w-0 items-start gap-2.5 pl-0.5">
               <span
                 className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${
                   dark ? 'bg-[#64D2FF]/80' : 'bg-[#007AFF]/70'
                 }`}
               />
-              <p className="flex-1">{renderFormattedLine(trimmed.slice(2), index, dark)}</p>
+              <p className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+                {renderFormattedLine(trimmed.slice(2), index, dark)}
+              </p>
             </div>
           );
         }
-        return <p key={index}>{renderFormattedLine(line, index, dark)}</p>;
+        return (
+          <p key={block.key} className="min-w-0 break-words [overflow-wrap:anywhere]">
+            {renderFormattedLine(block.text, index, dark)}
+          </p>
+        );
       })}
     </div>
   );

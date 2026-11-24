@@ -39,6 +39,7 @@ import {
   DocContentRenderer,
   LiquidGlassAdSlot,
   LiquidGlassCard,
+  LiquidGlassConfirmModal,
   LiquidGlassSheet,
 } from '../components/LiquidGlass';
 import { DMDocLogo } from '../components/DMDocLogo';
@@ -77,6 +78,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
   const [copiedBody, setCopiedBody] = useState(false);
   const [toast, setToast] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const { canInstall, promptInstall, iosHintOpen, closeIosHint } = usePwaInstall();
 
   const [formTitle, setFormTitle] = useState('');
@@ -410,7 +412,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
             </button>
             <button
               type="button"
-              onClick={() => supabase?.auth.signOut()}
+              onClick={() => setLogoutConfirmOpen(true)}
               aria-label="Sign out"
               className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
                 dark
@@ -520,8 +522,8 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                   const adActive = settings.ad_enabled && doc.show_ad !== false;
                   return (
                     <LiquidGlassCard key={doc.id} dark={dark} className="p-4 sm:p-5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="truncate text-[16px] font-semibold tracking-[-0.015em]">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h2 className="min-w-0 max-w-full truncate text-[16px] font-semibold tracking-[-0.015em]">
                           {doc.title}
                         </h2>
                         <button
@@ -568,14 +570,14 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                         }`}
                       >
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[11px] ${
+                          className={`inline-flex max-w-full items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[11px] ${
                             dark
                               ? 'bg-white/10 text-white/85 border border-white/12'
                               : 'bg-white/65 text-[#3A3A3C] border border-white/80'
                           }`}
                         >
-                          <Link2 className="h-3 w-3 opacity-60" />
-                          /d/{doc.slug}
+                          <Link2 className="h-3 w-3 shrink-0 opacity-60" />
+                          <span className="truncate">/d/{doc.slug}</span>
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <Eye className="h-3.5 w-3.5 opacity-60" />
@@ -585,7 +587,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                       </div>
 
                       <p
-                        className={`mt-3 line-clamp-2 text-[13px] leading-relaxed ${
+                        className={`mt-3 line-clamp-2 break-words [overflow-wrap:anywhere] text-[13px] leading-relaxed ${
                           dark ? 'text-white/75' : 'text-[#3A3A3C]'
                         }`}
                       >
@@ -706,7 +708,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
               <select
                 value={previewDoc?.id || ''}
                 onChange={(e) => setPreviewDocId(e.target.value)}
-                className={`max-w-[230px] truncate rounded-full px-3 py-1 text-[12px] font-medium focus:outline-none ${
+                className={`min-w-0 flex-1 sm:flex-initial sm:max-w-[260px] truncate rounded-full px-3 py-1 text-[12px] font-medium focus:outline-none ${
                   dark
                     ? 'bg-white/12 text-white border border-white/15'
                     : 'bg-white/75 text-[#1D1D1F] border border-white'
@@ -725,39 +727,39 @@ export default function AdminPage({ user, dark, onToggleDark }) {
             </div>
 
             {previewDoc && (
-              <div className="mx-auto max-w-[392px]">
+              <div className="mx-auto w-full max-w-md sm:max-w-xl md:max-w-2xl">
                 <div
-                  className="overflow-hidden rounded-[36px]"
+                  className="overflow-hidden rounded-[34px]"
                   style={getGlassStyle(dark, 'card')}
                 >
                   <div
-                    className={`flex items-center justify-between border-b px-4 py-3 ${
+                    className={`flex items-center justify-between gap-2 border-b px-4 py-3 ${
                       dark ? 'border-white/10' : 'border-white/60'
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => setActiveTab('admin')}
-                      className={`flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90 ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90 ${
                         dark ? 'bg-white/12 text-white/80' : 'bg-white/75 text-[#3A3A3C]'
                       }`}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
                     <div
-                      className={`flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[11px] ${
+                      className={`flex min-w-0 max-w-full items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[11px] ${
                         dark
                           ? 'bg-white/10 text-white/85 border border-white/15'
                           : 'bg-white/75 text-[#3A3A3C] border border-white/90'
                       }`}
                     >
-                      <Lock className="h-2.5 w-2.5 text-[#34C759]" />
-                      <span className="max-w-[175px] truncate">/d/{previewDoc.slug}</span>
+                      <Lock className="h-2.5 w-2.5 shrink-0 text-[#34C759]" />
+                      <span className="truncate">/d/{previewDoc.slug}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleCopyLink(previewDoc)}
-                      className={`flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90 ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90 ${
                         dark ? 'bg-white/12 text-white/80' : 'bg-white/75 text-[#3A3A3C]'
                       }`}
                     >
@@ -780,10 +782,10 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-4 p-5">
+                    <div className="space-y-4 p-5 sm:p-6">
                       <div>
                         <div
-                          className={`mb-2 flex items-center justify-between text-[11px] tabular-nums ${
+                          className={`mb-2 flex items-center justify-between gap-2 text-[11px] tabular-nums ${
                             dark ? 'text-white/55' : 'text-[#6E6E73]'
                           }`}
                         >
@@ -793,13 +795,13 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                             {previewDoc.views}
                           </span>
                         </div>
-                        <h2 className="text-[21px] font-bold tracking-[-0.025em] leading-snug">
+                        <h2 className="break-words [overflow-wrap:anywhere] text-[21px] sm:text-[22px] font-bold tracking-[-0.025em] leading-snug">
                           {previewDoc.title}
                         </h2>
                       </div>
 
                       <div
-                        className={`rounded-[22px] p-4 ${
+                        className={`min-w-0 overflow-hidden rounded-[22px] p-4 ${
                           dark
                             ? 'bg-black/25 border border-white/10'
                             : 'bg-white/55 border border-white/80'
@@ -840,11 +842,11 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                                 : 'bg-[#007AFF]/12 text-[#007AFF] border border-[#007AFF]/20'
                             }`}
                           >
-                            <span className="flex items-center gap-2">
-                              <ExternalLink className="h-4 w-4" />
-                              {previewDoc.cta_label}
+                            <span className="flex min-w-0 items-center gap-2">
+                              <ExternalLink className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{previewDoc.cta_label}</span>
                             </span>
-                            <ChevronRight className="h-4 w-4 opacity-75" />
+                            <ChevronRight className="h-4 w-4 shrink-0 opacity-75" />
                           </a>
                         )}
                       </div>
@@ -1151,51 +1153,27 @@ export default function AdminPage({ user, dark, onToggleDark }) {
         </div>
       </LiquidGlassSheet>
 
-      {/* Delete Confirm Modal */}
-      {deleteTarget && (
-        <div
-          className="anim-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
-          style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setDeleteTarget(null);
-          }}
-        >
-          <div
-            className="anim-modal w-full max-w-[280px] overflow-hidden rounded-[26px] text-center"
-            style={getGlassStyle(dark, 'sheet')}
-          >
-            <div className="px-5 pt-5 pb-4">
-              <h3 className="text-[16px] font-semibold tracking-[-0.015em]">
-                Delete &quot;{deleteTarget.title}&quot;?
-              </h3>
-            </div>
-            <div
-              className={`grid grid-cols-2 border-t ${
-                dark ? 'border-white/12' : 'border-black/[0.08]'
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className={`border-r py-3 text-[14px] font-medium ${
-                  dark
-                    ? 'border-white/12 text-[#64D2FF]'
-                    : 'border-black/[0.08] text-[#007AFF]'
-                }`}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="py-3 text-[14px] font-semibold text-[#FF3B30]"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LiquidGlassConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        title={deleteTarget ? `Delete "${deleteTarget.title}"?` : ''}
+        confirmLabel="Delete"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        dark={dark}
+      />
+
+      <LiquidGlassConfirmModal
+        isOpen={logoutConfirmOpen}
+        title="Sign out of DMDoc?"
+        description="You'll need to sign in again to manage your docs."
+        confirmLabel="Sign Out"
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          setLogoutConfirmOpen(false);
+          supabase?.auth.signOut();
+        }}
+        dark={dark}
+      />
 
       {toast && (
         <div

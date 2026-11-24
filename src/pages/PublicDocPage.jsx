@@ -75,7 +75,7 @@ export default function PublicDocPage({ dark, onToggleDark }) {
     >
       <AmbientBackdrop dark={dark} />
 
-      <div className="relative z-10 mx-auto max-w-[440px]">
+      <div className="relative z-10 mx-auto w-full max-w-md sm:max-w-xl md:max-w-2xl">
         <div className="mb-3 flex justify-end">
           <button
             type="button"
@@ -123,13 +123,13 @@ export default function PublicDocPage({ dark, onToggleDark }) {
                     {doc.views + 1}
                   </span>
                 </div>
-                <h1 className="text-[22px] font-bold tracking-[-0.025em] leading-snug">
+                <h1 className="break-words [overflow-wrap:anywhere] text-[22px] font-bold tracking-[-0.025em] leading-snug">
                   {doc.title}
                 </h1>
               </div>
 
               <div
-                className={`rounded-[22px] p-4 ${
+                className={`min-w-0 overflow-hidden rounded-[22px] p-4 ${
                   dark
                     ? 'bg-black/25 border border-white/10'
                     : 'bg-white/55 border border-white/80'
@@ -185,11 +185,11 @@ export default function PublicDocPage({ dark, onToggleDark }) {
                         : 'bg-[#007AFF]/12 text-[#007AFF] border border-[#007AFF]/20 hover:bg-[#007AFF]/18'
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <ExternalLink className="h-4 w-4" />
-                      {doc.cta_label}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <ExternalLink className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{doc.cta_label}</span>
                     </span>
-                    <ChevronRight className="h-4 w-4 opacity-75" />
+                    <ChevronRight className="h-4 w-4 shrink-0 opacity-75" />
                   </a>
                 )}
               </div>

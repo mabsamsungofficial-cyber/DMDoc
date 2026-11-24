@@ -1,25 +1,94 @@
 import React, { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { REMEMBER_ME_KEY, SAVED_EMAIL_KEY } from '../lib/utils';
 import { AmbientBackdrop, LiquidGlassCard } from '../components/LiquidGlass';
 import { DMDocLogo } from '../components/DMDocLogo';
 
+function getInitialRememberState() {
+  try {
+    return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function getInitialSavedEmail() {
+  try {
+    if (localStorage.getItem(REMEMBER_ME_KEY) === 'true') {
+      return localStorage.getItem(SAVED_EMAIL_KEY) || '';
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return '';
+}
+
 export default function LoginPage({ dark }) {
-  const [email, setEmail] = useState('');
+  const [remember, setRemember] = useState(getInitialRememberState);
+  const [email, setEmail] = useState(getInitialSavedEmail);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleRememberChange = (checked) => {
+    setRemember(checked);
+    try {
+      if (checked) {
+        localStorage.setItem(REMEMBER_ME_KEY, 'true');
+        if (email.trim()) {
+          localStorage.setItem(SAVED_EMAIL_KEY, email.trim());
+        }
+      } else {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(SAVED_EMAIL_KEY);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!supabase) return;
+    const trimmedEmail = email.trim();
     setLoading(true);
     setError('');
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: trimmedEmail,
       password,
     });
-    if (authError) setError(authError.message);
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (remember) {
+        localStorage.setItem(REMEMBER_ME_KEY, 'true');
+        localStorage.setItem(SAVED_EMAIL_KEY, trimmedEmail);
+        if (
+          typeof window !== 'undefined' &&
+          'PasswordCredential' in window &&
+          navigator.credentials?.store
+        ) {
+          const cred = new window.PasswordCredential({
+            id: trimmedEmail,
+            password,
+            name: trimmedEmail,
+          });
+          await navigator.credentials.store(cred).catch(() => {});
+        }
+      } else {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(SAVED_EMAIL_KEY);
+      }
+    } catch {
+      // Ignore storage / credential manager errors
+    }
+
     setLoading(false);
   };
 
@@ -40,28 +109,76 @@ export default function LoginPage({ dark }) {
           <h1 className="text-[19px] font-bold tracking-[-0.02em]">DMDoc</h1>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-3.5">
+        <form onSubmit={handleLogin} autoComplete="on" className="space-y-3.5">
           {error && (
-            <div className="rounded-[12px] bg-[#FF3B30]/15 border border-[#FF3B30]/30 px-3 py-2 text-[12px] font-medium text-[#FF453A]">
+            <div className="break-words [overflow-wrap:anywhere] rounded-[12px] bg-[#FF3B30]/15 border border-[#FF3B30]/30 px-3 py-2 text-[12px] font-medium text-[#FF453A]">
               {error}
             </div>
           )}
           <input
+            id="dmdoc-email"
+            name="email"
             type="email"
+            autoComplete="username"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             className={inputClass}
           />
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className={inputClass}
-          />
+          <div className="relative">
+            <input
+              id="dmdoc-password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className={`${inputClass} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className={`absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-colors ${
+                dark
+                  ? 'text-white/55 hover:bg-white/10 hover:text-white'
+                  : 'text-[#6E6E73] hover:bg-black/[0.06] hover:text-[#1D1D1F]'
+              }`}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+
+          <label className="flex cursor-pointer select-none items-center gap-2.5 py-0.5">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => handleRememberChange(e.target.checked)}
+              className="sr-only"
+            />
+            <span
+              className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[6px] border transition-colors ${
+                remember
+                  ? 'border-[#007AFF] bg-[#007AFF] text-white'
+                  : dark
+                    ? 'border-white/25 bg-white/[0.06]'
+                    : 'border-black/20 bg-white/80'
+              }`}
+            >
+              {remember && <Check className="h-3 w-3 stroke-[3]" />}
+            </span>
+            <span
+              className={`text-[13px] font-medium ${
+                dark ? 'text-white/75' : 'text-[#515154]'
+              }`}
+            >
+              Remember ID &amp; password
+            </span>
+          </label>
+
           <button
             type="submit"
             disabled={loading}

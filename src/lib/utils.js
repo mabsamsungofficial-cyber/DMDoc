@@ -1,5 +1,7 @@
 export const APPLE_SPRING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 export const THEME_KEY = 'dmdoc_theme_v1';
+export const SAVED_EMAIL_KEY = 'dmdoc_saved_email_v1';
+export const REMEMBER_ME_KEY = 'dmdoc_remember_me_v1';
 
 export function generateRandomSlug() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
