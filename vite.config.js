@@ -16,8 +16,8 @@ export default defineConfig({
         'pwa-maskable-512x512.png',
       ],
       manifest: {
-        name: 'DMDoc',
-        short_name: 'DMDoc',
+        name: 'DM Docs',
+        short_name: 'DM Docs',
         description: 'Personal shareable DM Doc & link generator',
         theme_color: '#EEF3FA',
         background_color: '#EEF3FA',

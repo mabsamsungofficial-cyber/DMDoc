@@ -75,7 +75,7 @@ export function PwaInstallButton({ dark, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label="Install DMDoc app"
+      aria-label="Install DM Docs app"
       title="Install App"
       className={`flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold transition-transform duration-150 active:scale-95 ${
         dark
@@ -115,7 +115,7 @@ export function IosInstallModal({ isOpen, onClose, dark }) {
                   dark ? 'text-white' : 'text-[#1D1D1F]'
                 }`}
               >
-                Install DMDoc
+                Install DM Docs
               </h3>
               <p className={`text-[12px] ${dark ? 'text-white/60' : 'text-[#6E6E73]'}`}>
                 Add to your Home Screen

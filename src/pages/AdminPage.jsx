@@ -334,7 +334,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
           <div className="flex items-center gap-2 pl-1">
             <DMDocLogo className="h-8 w-8 shrink-0" />
             <span className="hidden text-[15px] font-semibold tracking-[-0.02em] sm:inline">
-              DMDoc
+              DM Docs
             </span>
           </div>
 
@@ -1164,7 +1164,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
 
       <LiquidGlassConfirmModal
         isOpen={logoutConfirmOpen}
-        title="Sign out of DMDoc?"
+        title="Sign out of DM Docs?"
         description="You'll need to sign in again to manage your docs."
         confirmLabel="Sign Out"
         onCancel={() => setLogoutConfirmOpen(false)}

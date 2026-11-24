@@ -1,4 +1,4 @@
-# DMDoc (V1 — Liquid Glass)
+# DM Docs (V1 — Liquid Glass)
 
 Personal shareable DM Doc & link generator built with React, Vite, Tailwind CSS, and Supabase.
 

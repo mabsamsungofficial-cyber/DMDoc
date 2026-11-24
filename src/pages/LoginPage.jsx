@@ -106,7 +106,7 @@ export default function LoginPage({ dark }) {
       <LiquidGlassCard dark={dark} className="anim-view w-full max-w-sm p-6">
         <div className="mb-6 flex items-center gap-2.5">
           <DMDocLogo className="h-9 w-9 shrink-0" />
-          <h1 className="text-[19px] font-bold tracking-[-0.02em]">DMDoc</h1>
+          <h1 className="text-[19px] font-bold tracking-[-0.02em]">DM Docs</h1>
         </div>
 
         <form onSubmit={handleLogin} autoComplete="on" className="space-y-3.5">
