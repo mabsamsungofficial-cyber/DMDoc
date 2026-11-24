@@ -6,10 +6,18 @@ import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import PublicDocPage from './pages/PublicDocPage';
 import { OfflineBanner } from './components/PwaControls';
+import { AmbientBackdrop } from './components/LiquidGlass';
+import { DMDocLogo } from './components/DMDocLogo';
+import { MabArenaBrand } from './components/MabArenaBrand';
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [splashDone, setSplashDone] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    // Skip artificial splash delay for shared /d/:slug links so readers open instantly
+    return window.location.pathname.startsWith('/d/');
+  });
   const [dark, setDark] = useState(() => {
     try {
       return localStorage.getItem(THEME_KEY) === 'dark';
@@ -53,6 +61,12 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (splashDone) return undefined;
+    const t = setTimeout(() => setSplashDone(true), 650);
+    return () => clearTimeout(t);
+  }, [splashDone]);
+
   const toggleDark = () => setDark((d) => !d);
 
   if (!isSupabaseConfigured) {
@@ -68,7 +82,25 @@ export default function App() {
     );
   }
 
-  if (!authReady) return null;
+  if (!authReady || !splashDone) {
+    return (
+      <div
+        className={`relative flex min-h-screen flex-col items-center justify-between px-6 py-10 transition-colors duration-300 ${
+          dark ? 'bg-[#090D18] text-white' : 'bg-[#EEF3FA] text-[#1D1D1F]'
+        }`}
+      >
+        <AmbientBackdrop dark={dark} />
+        <div className="h-8" />
+        <div className="relative z-10 flex flex-col items-center gap-3 anim-view">
+          <DMDocLogo className="h-16 w-16 sm:h-[72px] sm:w-[72px]" />
+          <span className="text-[18px] font-bold tracking-[-0.025em]">DM Docs</span>
+        </div>
+        <div className="relative z-10 pb-[env(safe-area-inset-bottom)]">
+          <MabArenaBrand dark={dark} size="lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

@@ -43,6 +43,7 @@ import {
   LiquidGlassSheet,
 } from '../components/LiquidGlass';
 import { DMDocLogo } from '../components/DMDocLogo';
+import { MabArenaBrand } from '../components/MabArenaBrand';
 import {
   IosInstallModal,
   PwaInstallButton,
@@ -857,6 +858,10 @@ export default function AdminPage({ user, dark, onToggleDark }) {
             )}
           </div>
         )}
+
+        <footer className="mt-10 flex justify-center">
+          <MabArenaBrand dark={dark} size="sm" />
+        </footer>
       </main>
 
       {/* Ad / Sponsor Settings Sheet */}

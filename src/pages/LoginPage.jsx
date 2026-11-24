@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { REMEMBER_ME_KEY, SAVED_EMAIL_KEY } from '../lib/utils';
 import { AmbientBackdrop, LiquidGlassCard } from '../components/LiquidGlass';
 import { DMDocLogo } from '../components/DMDocLogo';
+import { MabArenaBrand } from '../components/MabArenaBrand';
 
 function getInitialRememberState() {
   try {
@@ -98,11 +99,12 @@ export default function LoginPage({ dark }) {
 
   return (
     <div
-      className={`relative flex min-h-screen items-center justify-center px-4 ${
+      className={`relative flex min-h-screen flex-col items-center justify-between px-4 py-8 ${
         dark ? 'bg-[#090D18] text-white' : 'bg-[#EEF3FA] text-[#1D1D1F]'
       }`}
     >
       <AmbientBackdrop dark={dark} />
+      <div className="h-4" />
       <LiquidGlassCard dark={dark} className="anim-view w-full max-w-sm p-6">
         <div className="mb-6 flex items-center gap-2.5">
           <DMDocLogo className="h-9 w-9 shrink-0" />
@@ -193,6 +195,9 @@ export default function LoginPage({ dark }) {
           </button>
         </form>
       </LiquidGlassCard>
+      <div className="relative z-10 pt-6 pb-[env(safe-area-inset-bottom)]">
+        <MabArenaBrand dark={dark} size="md" />
+      </div>
     </div>
   );
 }

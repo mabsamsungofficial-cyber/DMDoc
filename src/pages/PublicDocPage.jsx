@@ -8,6 +8,7 @@ import {
   DocContentRenderer,
   LiquidGlassAdSlot,
 } from '../components/LiquidGlass';
+import { MabArenaBrand } from '../components/MabArenaBrand';
 
 export default function PublicDocPage({ dark, onToggleDark }) {
   const { slug } = useParams();
@@ -195,6 +196,10 @@ export default function PublicDocPage({ dark, onToggleDark }) {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="mt-8 flex justify-center pb-[env(safe-area-inset-bottom)]">
+          <MabArenaBrand dark={dark} size="sm" />
         </div>
       </div>
     </div>
