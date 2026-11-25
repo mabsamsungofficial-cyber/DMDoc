@@ -90,6 +90,15 @@ export function PwaInstallButton({ dark, onClick }) {
 }
 
 export function IosInstallModal({ isOpen, onClose, dark }) {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -126,8 +135,8 @@ export function IosInstallModal({ isOpen, onClose, dark }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className={`flex h-7 w-7 items-center justify-center rounded-full ${
-              dark ? 'bg-white/12 text-white/75' : 'bg-black/[0.06] text-[#515154]'
+            className={`flex h-7 w-7 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
+              dark ? 'bg-white/12 text-white/75 hover:bg-white/20' : 'bg-black/[0.06] text-[#515154] hover:bg-black/[0.1]'
             }`}
           >
             <X className="h-3.5 w-3.5" />

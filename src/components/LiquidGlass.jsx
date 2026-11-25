@@ -1,6 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, ArrowUpRight, Zap, Copy, Check } from 'lucide-react';
+import { X, Sparkles, ArrowUpRight, Zap, Copy, Check, Code2 } from 'lucide-react';
+import { Highlight, Prism, themes } from 'prism-react-renderer';
 import { APPLE_SPRING, copyTextSafe, getGlassStyle } from '../lib/utils';
+
+if (typeof Prism !== 'undefined' && Prism.languages && !Prism.languages.bash) {
+  Prism.languages.bash = {
+    comment: { pattern: /(^|[^"{\\$])#.*/, lookbehind: true },
+    string: [
+      { pattern: /"(?:\\[\s\S]|[^"\\])*"/, greedy: true },
+      { pattern: /'(?:\\[\s\S]|[^'\\])*'/, greedy: true },
+    ],
+    variable: /\$(?:\w+|\{[^}]+\})/,
+    keyword:
+      /\b(?:if|then|else|elif|fi|for|while|do|done|case|esac|in|function|export|local|return|sudo|npm|npx|yarn|pnpm|pip3?|python3?|git|cd|ls|mkdir|rm|cp|mv|cat|echo|curl|wget|docker)\b/,
+    operator: /&&|\|\||[|><;=]/,
+    number: /\b\d+\b/,
+    punctuation: /[(){}[\]]/,
+  };
+  Prism.languages.sh = Prism.languages.bash;
+  Prism.languages.shell = Prism.languages.bash;
+  Prism.languages.zsh = Prism.languages.bash;
+}
 
 export function AmbientBackdrop({ dark }) {
   return (
@@ -65,11 +85,20 @@ export function LiquidGlassCard({ dark, className = '', children }) {
   );
 }
 
-export function LiquidGlassSheet({ isOpen, onClose, title, dark, children }) {
+export function LiquidGlassSheet({
+  isOpen,
+  onClose,
+  title,
+  dark,
+  size = 'md',
+  children,
+}) {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const pointerState = useRef({
     active: false,
+    captured: false,
+    pointerId: null,
     startY: 0,
     lastY: 0,
     lastTime: 0,
@@ -92,23 +121,37 @@ export function LiquidGlassSheet({ isOpen, onClose, title, dark, children }) {
   if (!isOpen) return null;
 
   const handlePointerDown = (e) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    if (e.target.closest('button, a, input, select, textarea, [data-no-drag]')) {
+      return;
+    }
     const now = performance.now();
     pointerState.current = {
       active: true,
+      captured: false,
+      pointerId: e.pointerId,
       startY: e.clientY - dragY,
       lastY: e.clientY,
       lastTime: now,
       velocityY: 0,
     };
-    setIsDragging(true);
   };
 
   const handlePointerMove = (e) => {
     if (!pointerState.current.active) return;
+    const rawDelta = e.clientY - pointerState.current.startY;
+    if (!pointerState.current.captured) {
+      if (Math.abs(rawDelta) <= 4) return;
+      try {
+        e.currentTarget.setPointerCapture(pointerState.current.pointerId);
+      } catch {
+        // Ignore pointer capture errors on synthetic events
+      }
+      pointerState.current.captured = true;
+      setIsDragging(true);
+    }
+
     const now = performance.now();
     const dt = Math.max(1, now - pointerState.current.lastTime);
-    const rawDelta = e.clientY - pointerState.current.startY;
     pointerState.current.velocityY = (e.clientY - pointerState.current.lastY) / dt;
     pointerState.current.lastY = e.clientY;
     pointerState.current.lastTime = now;
@@ -119,8 +162,15 @@ export function LiquidGlassSheet({ isOpen, onClose, title, dark, children }) {
 
   const handlePointerUp = () => {
     if (!pointerState.current.active) return;
+    const wasCaptured = pointerState.current.captured;
     pointerState.current.active = false;
+    pointerState.current.captured = false;
     setIsDragging(false);
+
+    if (!wasCaptured) {
+      setDragY(0);
+      return;
+    }
 
     const projectedY = dragY + pointerState.current.velocityY * 180;
     if (dragY > 110 || projectedY > 170) {
@@ -132,6 +182,7 @@ export function LiquidGlassSheet({ isOpen, onClose, title, dark, children }) {
   };
 
   const backdropOpacity = Math.max(0.14, (dark ? 0.5 : 0.28) - Math.max(0, dragY) / 600);
+  const maxWidthClass = size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-lg';
 
   return (
     <div
@@ -149,7 +200,7 @@ export function LiquidGlassSheet({ isOpen, onClose, title, dark, children }) {
       <div
         role="dialog"
         aria-modal="true"
-        className="anim-sheet w-full sm:max-w-lg max-h-[90vh] flex flex-col overflow-hidden rounded-t-[32px] sm:rounded-[32px]"
+        className={`anim-sheet w-full ${maxWidthClass} max-h-[90vh] flex flex-col overflow-hidden rounded-t-[32px] sm:rounded-[32px]`}
         style={{
           ...getGlassStyle(dark, 'sheet'),
           transform: dragY !== 0 ? `translate3d(0, ${dragY}px, 0)` : undefined,
@@ -180,6 +231,7 @@ export function LiquidGlassSheet({ isOpen, onClose, title, dark, children }) {
             </h2>
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={onClose}
               aria-label="Close"
               className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
@@ -409,8 +461,56 @@ function renderFormattedLine(line, lineIndex, dark) {
   });
 }
 
+const LANGUAGE_MAP = {
+  py: { prism: 'python', label: 'Python' },
+  python: { prism: 'python', label: 'Python' },
+  html: { prism: 'markup', label: 'HTML' },
+  htm: { prism: 'markup', label: 'HTML' },
+  xml: { prism: 'markup', label: 'XML' },
+  svg: { prism: 'markup', label: 'SVG' },
+  markup: { prism: 'markup', label: 'HTML' },
+  js: { prism: 'javascript', label: 'JavaScript' },
+  javascript: { prism: 'javascript', label: 'JavaScript' },
+  ts: { prism: 'typescript', label: 'TypeScript' },
+  typescript: { prism: 'typescript', label: 'TypeScript' },
+  jsx: { prism: 'jsx', label: 'JSX' },
+  tsx: { prism: 'tsx', label: 'TSX' },
+  css: { prism: 'css', label: 'CSS' },
+  json: { prism: 'json', label: 'JSON' },
+  sql: { prism: 'sql', label: 'SQL' },
+  bash: { prism: 'bash', label: 'Bash' },
+  sh: { prism: 'bash', label: 'Shell' },
+  shell: { prism: 'bash', label: 'Shell' },
+  zsh: { prism: 'bash', label: 'Zsh' },
+  yml: { prism: 'yaml', label: 'YAML' },
+  yaml: { prism: 'yaml', label: 'YAML' },
+  md: { prism: 'markdown', label: 'Markdown' },
+  markdown: { prism: 'markdown', label: 'Markdown' },
+  cpp: { prism: 'cpp', label: 'C++' },
+  'c++': { prism: 'cpp', label: 'C++' },
+  c: { prism: 'c', label: 'C' },
+  go: { prism: 'go', label: 'Go' },
+  rust: { prism: 'rust', label: 'Rust' },
+  swift: { prism: 'swift', label: 'Swift' },
+  kotlin: { prism: 'kotlin', label: 'Kotlin' },
+  plain: { prism: 'plain', label: 'Code' },
+  text: { prism: 'plain', label: 'Code' },
+};
+
+function resolveCodeLanguage(lang) {
+  const key = (lang || '').trim().toLowerCase();
+  if (!key) return { prism: 'plain', label: 'Code' };
+  if (LANGUAGE_MAP[key]) return LANGUAGE_MAP[key];
+  if (Prism?.languages?.[key]) {
+    return { prism: key, label: lang.trim().toUpperCase() };
+  }
+  return { prism: 'plain', label: lang.trim() || 'Code' };
+}
+
 function CodeBlock({ code, lang, dark }) {
   const [copied, setCopied] = useState(false);
+  const { prism, label } = resolveCodeLanguage(lang);
+  const lineCount = code ? code.split('\n').length : 1;
 
   const handleCopy = () => {
     copyTextSafe(code);
@@ -420,37 +520,87 @@ function CodeBlock({ code, lang, dark }) {
 
   return (
     <div
-      className={`my-2 w-full max-w-full overflow-hidden rounded-[16px] border ${
+      className={`my-2.5 w-full max-w-full overflow-hidden rounded-[18px] border shadow-[0_12px_30px_rgba(2,6,23,0.28)] ${
         dark
-          ? 'bg-[#070B14]/85 border-white/12 text-[#E2E8F0]'
-          : 'bg-[#0F172A]/[0.92] border-white/25 text-[#F8FAFC]'
+          ? 'bg-[#121622] border-white/14 text-[#D4D4D4]'
+          : 'bg-[#161B26] border-[#0F172A]/25 text-[#D4D4D4]'
       }`}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3.5 py-2">
-        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-white/55">
-          {lang || 'code'}
-        </span>
+      <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] bg-[#1C2230] px-3.5 py-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="hidden sm:flex items-center gap-1.5" aria-hidden="true">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F56]/85" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]/85" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#27C93F]/85" />
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] font-medium text-[#9CDCFE]">
+            <Code2 className="h-3 w-3 opacity-80" />
+            <span>{label}</span>
+          </span>
+          <span className="text-[11px] tabular-nums text-white/40">
+            {lineCount} {lineCount === 1 ? 'line' : 'lines'}
+          </span>
+        </div>
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/85 transition-colors hover:bg-white/20 active:scale-95"
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all active:scale-95 ${
+            copied
+              ? 'bg-[#34C759]/20 text-[#5EE881] border border-[#34C759]/35'
+              : 'bg-white/10 text-white/85 hover:bg-white/18 border border-white/10'
+          }`}
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3 text-[#34C759]" />
+              <Check className="h-3 w-3 stroke-[2.4]" />
               <span>Copied</span>
             </>
           ) : (
             <>
               <Copy className="h-3 w-3" />
-              <span>Copy</span>
+              <span>Copy Code</span>
             </>
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto px-3.5 py-3 font-mono text-[13px] leading-[1.55]">
-        <code>{code}</code>
-      </pre>
+
+      <Highlight theme={themes.vsDark} code={code} language={prism}>
+        {({ className, style, tokens, getLineProps, getTokenProps }) => (
+          <pre
+            className={`${className} m-0 overflow-x-auto py-3 font-mono text-[12.5px] sm:text-[13px] leading-[1.6]`}
+            style={{ ...style, backgroundColor: 'transparent' }}
+          >
+            <code className="block min-w-full w-max">
+              {tokens.map((line, i) => {
+                const lineProps = getLineProps({ line });
+                const isEmptyLine =
+                  line.length === 0 || (line.length === 1 && line[0].empty);
+                return (
+                  <div
+                    key={i}
+                    {...lineProps}
+                    className={`${lineProps.className || ''} flex min-w-full hover:bg-white/[0.035]`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="select-none shrink-0 w-10 pr-3 text-right text-[11.5px] tabular-nums text-white/30 border-r border-white/[0.07]"
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="whitespace-pre pl-3.5 pr-4">
+                      {isEmptyLine
+                        ? ' '
+                        : line.map((token, key) => (
+                            <span key={key} {...getTokenProps({ token })} />
+                          ))}
+                    </span>
+                  </div>
+                );
+              })}
+            </code>
+          </pre>
+        )}
+      </Highlight>
     </div>
   );
 }

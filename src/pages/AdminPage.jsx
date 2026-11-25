@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Plus,
   Copy,
@@ -22,6 +22,9 @@ import {
   Megaphone,
   LogOut,
   Loader2,
+  Code2,
+  Terminal,
+  List,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
@@ -33,6 +36,14 @@ import {
   getShareUrl,
   slugify,
 } from '../lib/utils';
+import {
+  CODE_LANGUAGES,
+  getDocSnippet,
+  hasCodeBlock,
+  toggleBulletList,
+  wrapSelectionAsCodeBlock,
+  wrapSelectionAsInlineCode,
+} from '../lib/codeHelpers';
 import {
   AmbientBackdrop,
   AppleSpringSwitch,
@@ -90,6 +101,9 @@ export default function AdminPage({ user, dark, onToggleDark }) {
   const [formIsPublic, setFormIsPublic] = useState(true);
   const [formShowAd, setFormShowAd] = useState(true);
   const [formError, setFormError] = useState('');
+  const [editorMode, setEditorMode] = useState('write');
+  const [codeLang, setCodeLang] = useState('auto');
+  const contentTextareaRef = useRef(null);
 
   const showToast = (msg) => setToast(msg);
 
@@ -152,6 +166,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
     setFormIsPublic(true);
     setFormShowAd(true);
     setFormError('');
+    setEditorMode('write');
   };
 
   const openEditEditor = (doc) => {
@@ -164,6 +179,41 @@ export default function AdminPage({ user, dark, onToggleDark }) {
     setFormIsPublic(doc.is_public);
     setFormShowAd(doc.show_ad !== false);
     setFormError('');
+    setEditorMode('write');
+  };
+
+  const applyContentTransform = (transformFn) => {
+    const el = contentTextareaRef.current;
+    const start = el ? el.selectionStart : formContent.length;
+    const end = el ? el.selectionEnd : formContent.length;
+    const { nextContent, nextSelectionStart, nextSelectionEnd } = transformFn(
+      formContent,
+      start,
+      end
+    );
+    setFormContent(nextContent);
+    setEditorMode('write');
+    requestAnimationFrame(() => {
+      const target = contentTextareaRef.current;
+      if (!target) return;
+      target.focus();
+      target.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
+  };
+
+  const handleContentKeyDown = (e) => {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    const el = e.currentTarget;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const nextContent = `${formContent.slice(0, start)}  ${formContent.slice(end)}`;
+    setFormContent(nextContent);
+    requestAnimationFrame(() => {
+      const target = contentTextareaRef.current;
+      if (!target) return;
+      target.setSelectionRange(start + 2, start + 2);
+    });
   };
 
   const handleTitleChange = (val) => {
@@ -563,6 +613,18 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                           <Megaphone className="h-2.5 w-2.5" />
                           {adActive ? 'Ad On' : 'Ad Off'}
                         </button>
+                        {hasCodeBlock(doc.content) && (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10.5px] font-medium ${
+                              dark
+                                ? 'bg-[#64D2FF]/15 text-[#7DD3FC] border border-[#64D2FF]/25'
+                                : 'bg-[#007AFF]/10 text-[#007AFF] border border-[#007AFF]/20'
+                            }`}
+                          >
+                            <Code2 className="h-2.5 w-2.5" />
+                            Code
+                          </span>
+                        )}
                       </div>
 
                       <div
@@ -592,7 +654,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                           dark ? 'text-white/75' : 'text-[#3A3A3C]'
                         }`}
                       >
-                        {doc.content}
+                        {getDocSnippet(doc.content)}
                       </p>
 
                       <div
@@ -741,8 +803,10 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                     <button
                       type="button"
                       onClick={() => setActiveTab('admin')}
+                      aria-label="Close preview"
+                      title="Close preview"
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90 ${
-                        dark ? 'bg-white/12 text-white/80' : 'bg-white/75 text-[#3A3A3C]'
+                        dark ? 'bg-white/12 text-white/80 hover:bg-white/20' : 'bg-white/75 text-[#3A3A3C] hover:bg-white'
                       }`}
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1016,6 +1080,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
         onClose={() => setEditingDocId(null)}
         title={editingDocId === 'new' ? 'New Doc' : 'Edit Doc'}
         dark={dark}
+        size="lg"
       >
         <div className="space-y-3.5">
           {formError && (
@@ -1071,13 +1136,178 @@ export default function AdminPage({ user, dark, onToggleDark }) {
             </button>
           </div>
 
-          <textarea
-            rows={6}
-            value={formContent}
-            onChange={(e) => setFormContent(e.target.value)}
-            placeholder="Content"
-            className={`${inputClass} leading-relaxed`}
-          />
+          {/* Official Smart Editor Box */}
+          <div
+            className={`overflow-hidden rounded-[18px] border transition-colors ${
+              dark
+                ? 'bg-white/[0.06] border-white/12 focus-within:border-[#64D2FF]/60'
+                : 'bg-white/60 border-white/90 focus-within:border-[#007AFF]/50'
+            }`}
+          >
+            <div
+              className={`flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 ${
+                dark
+                  ? 'border-white/10 bg-white/[0.04]'
+                  : 'border-black/[0.06] bg-white/50'
+              }`}
+            >
+              <div
+                className={`inline-flex rounded-full p-0.5 ${
+                  dark ? 'bg-black/35' : 'bg-black/[0.06]'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('write')}
+                  className={`rounded-full px-3 py-1 text-[11.5px] font-semibold transition-all ${
+                    editorMode === 'write'
+                      ? dark
+                        ? 'bg-white/20 text-white'
+                        : 'bg-white text-[#1D1D1F] shadow-sm'
+                      : dark
+                        ? 'text-white/60 hover:text-white/85'
+                        : 'text-[#515154] hover:text-[#1D1D1F]'
+                  }`}
+                >
+                  Write
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('preview')}
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11.5px] font-semibold transition-all ${
+                    editorMode === 'preview'
+                      ? dark
+                        ? 'bg-white/20 text-white'
+                        : 'bg-white text-[#1D1D1F] shadow-sm'
+                      : dark
+                        ? 'text-white/60 hover:text-white/85'
+                        : 'text-[#515154] hover:text-[#1D1D1F]'
+                  }`}
+                >
+                  <Eye className="h-3 w-3" />
+                  <span>Preview</span>
+                </button>
+              </div>
+
+              {editorMode === 'write' && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <select
+                    value={codeLang}
+                    onChange={(e) => setCodeLang(e.target.value)}
+                    aria-label="Code language"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium focus:outline-none ${
+                      dark
+                        ? 'bg-white/12 text-white border border-white/12'
+                        : 'bg-white/85 text-[#1D1D1F] border border-black/[0.08]'
+                    }`}
+                  >
+                    {CODE_LANGUAGES.map((item) => (
+                      <option
+                        key={item.value}
+                        value={item.value}
+                        className={dark ? 'bg-[#121829] text-white' : 'bg-white text-[#1D1D1F]'}
+                      >
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      applyContentTransform((text, start, end) =>
+                        wrapSelectionAsCodeBlock(text, start, end, codeLang)
+                      )
+                    }
+                    title="Wrap selected text as a VS Code block (or insert new code block)"
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-transform active:scale-95 ${
+                      dark
+                        ? 'bg-[#0A84FF]/25 text-[#64D2FF] border border-[#64D2FF]/30 hover:bg-[#0A84FF]/35'
+                        : 'bg-[#007AFF]/12 text-[#007AFF] border border-[#007AFF]/20 hover:bg-[#007AFF]/18'
+                    }`}
+                  >
+                    <Code2 className="h-3.5 w-3.5" />
+                    <span>Code</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyContentTransform(wrapSelectionAsInlineCode)}
+                    title="Inline code (`code`)"
+                    aria-label="Inline code"
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-transform active:scale-95 ${
+                      dark
+                        ? 'bg-white/10 text-white/80 hover:bg-white/18 border border-white/10'
+                        : 'bg-white/80 text-[#3A3A3C] hover:bg-white border border-black/[0.08]'
+                    }`}
+                  >
+                    <Terminal className="h-3 w-3" />
+                    <span className="hidden sm:inline">Inline</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyContentTransform(toggleBulletList)}
+                    title="Toggle bullet list"
+                    aria-label="Toggle bullet list"
+                    className={`inline-flex items-center justify-center rounded-full p-1.5 transition-transform active:scale-95 ${
+                      dark
+                        ? 'bg-white/10 text-white/80 hover:bg-white/18 border border-white/10'
+                        : 'bg-white/80 text-[#3A3A3C] hover:bg-white border border-black/[0.08]'
+                    }`}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {editorMode === 'write' ? (
+              <>
+                <textarea
+                  ref={contentTextareaRef}
+                  rows={9}
+                  value={formContent}
+                  onChange={(e) => setFormContent(e.target.value)}
+                  onKeyDown={handleContentKeyDown}
+                  placeholder="Write normal text, or select code lines and click Code..."
+                  className={`w-full resize-y bg-transparent px-3.5 py-3 text-[13.5px] leading-relaxed focus:outline-none ${
+                    dark
+                      ? 'text-white placeholder:text-white/35'
+                      : 'text-[#1D1D1F] placeholder:text-[#6E6E73]'
+                  }`}
+                />
+                <div
+                  className={`flex items-center justify-between gap-2 border-t px-3.5 py-1.5 text-[11px] ${
+                    dark
+                      ? 'border-white/8 bg-black/20 text-white/45'
+                      : 'border-black/[0.05] bg-black/[0.02] text-[#6E6E73]'
+                  }`}
+                >
+                  <span>Select lines &amp; click Code — normal text stays plain</span>
+                  <span className="hidden sm:inline font-mono">Tab = indent</span>
+                </div>
+              </>
+            ) : (
+              <div
+                className={`min-h-[210px] max-h-[340px] overflow-y-auto p-4 ${
+                  dark ? 'bg-black/25' : 'bg-white/45'
+                }`}
+              >
+                {formContent.trim() ? (
+                  <DocContentRenderer content={formContent} dark={dark} />
+                ) : (
+                  <p
+                    className={`py-10 text-center text-[13px] ${
+                      dark ? 'text-white/40' : 'text-[#6E6E73]'
+                    }`}
+                  >
+                    Nothing to preview yet
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <input
