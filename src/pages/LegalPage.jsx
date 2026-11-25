@@ -94,17 +94,19 @@ export default function LegalPage({
             <span>Back</span>
           </button>
 
-          <button
-            type="button"
-            onClick={onToggleDark}
-            aria-label="Toggle theme"
-            className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
-              dark ? 'text-amber-300' : 'text-[#1D1D1F]'
-            }`}
-            style={getGlassStyle(dark, 'pill')}
-          >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+          {onToggleDark && (
+            <button
+              type="button"
+              onClick={onToggleDark}
+              aria-label="Toggle theme"
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
+                dark ? 'text-amber-300' : 'text-[#1D1D1F]'
+              }`}
+              style={getGlassStyle(dark, 'pill')}
+            >
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          )}
         </div>
 
         <LiquidGlassCard dark={dark} className="anim-view p-5 sm:p-7">

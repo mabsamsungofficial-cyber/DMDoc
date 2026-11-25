@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Copy, Check, ExternalLink, ChevronRight, Eye, Lock, Sun, Moon } from 'lucide-react';
+import { Copy, Check, ExternalLink, ChevronRight, Eye, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { copyTextSafe, formatRelativeDate, getGlassStyle } from '../lib/utils';
 import {
@@ -11,7 +11,7 @@ import {
 } from '../components/LiquidGlass';
 import { MabArenaBrand } from '../components/MabArenaBrand';
 
-export default function PublicDocPage({ dark, onToggleDark }) {
+export default function PublicDocPage({ dark }) {
   const { slug } = useParams();
   const [doc, setDoc] = useState(null);
   const [adSettings, setAdSettings] = useState(null);
@@ -78,20 +78,6 @@ export default function PublicDocPage({ dark, onToggleDark }) {
       <AmbientBackdrop dark={dark} />
 
       <div className="relative z-10 mx-auto w-full max-w-md sm:max-w-xl md:max-w-2xl">
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={onToggleDark}
-            aria-label="Toggle theme"
-            className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
-              dark ? 'text-amber-300' : 'text-[#1D1D1F]'
-            }`}
-            style={getGlassStyle(dark, 'pill')}
-          >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-        </div>
-
         <div
           className="anim-view overflow-hidden rounded-[34px]"
           style={getGlassStyle(dark, 'card')}
