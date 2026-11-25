@@ -30,6 +30,9 @@ import {
   ShieldCheck,
   Copyright,
   Download,
+  Wand2,
+  Upload,
+  FileText,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
@@ -50,6 +53,7 @@ import {
   wrapSelectionAsCodeBlock,
   wrapSelectionAsInlineCode,
 } from '../lib/codeHelpers';
+import { DM_DOCS_AI_PROMPT, parseAiDocInput } from '../lib/aiDocHelper';
 import {
   AmbientBackdrop,
   AppleSpringSwitch,
@@ -111,6 +115,13 @@ export default function AdminPage({ user, dark, onToggleDark }) {
   const [editorMode, setEditorMode] = useState('write');
   const [codeLang, setCodeLang] = useState('auto');
   const contentTextareaRef = useRef(null);
+
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
+  const [aiRawInput, setAiRawInput] = useState('');
+  const [aiPromptCopied, setAiPromptCopied] = useState(false);
+  const [aiImportError, setAiImportError] = useState('');
+  const [aiDragging, setAiDragging] = useState(false);
+  const aiFileInputRef = useRef(null);
 
   const showToast = (msg) => setToast(msg);
 
@@ -389,6 +400,71 @@ export default function AdminPage({ user, dark, onToggleDark }) {
     setTimeout(() => setCopiedBody(false), 1800);
   };
 
+  const openAiSheet = () => {
+    setAiImportError('');
+    setAiDragging(false);
+    setAiSheetOpen(true);
+  };
+
+  const handleCopyAiPrompt = () => {
+    copyTextSafe(DM_DOCS_AI_PROMPT);
+    setAiPromptCopied(true);
+    showToast('AI Prompt copied');
+    setTimeout(() => setAiPromptCopied(false), 1800);
+  };
+
+  const applyParsedAiDoc = (rawText, sourceLabel = '') => {
+    const parsed = parseAiDocInput(rawText);
+    if (!parsed.content && !parsed.title) {
+      setAiImportError('Paste Markdown/text or choose a valid .md / .txt file.');
+      return false;
+    }
+
+    const isFreshDoc = editingDocId === null;
+    if (isFreshDoc) {
+      setEditingDocId('new');
+      setFormShowAd(true);
+    }
+
+    if (parsed.title || isFreshDoc) {
+      setFormTitle(parsed.title);
+    }
+    if (parsed.slug) {
+      setFormSlug(parsed.slug);
+    } else if (isFreshDoc) {
+      setFormSlug(generateRandomSlug());
+    }
+    setFormContent(parsed.content || rawText.trim());
+    if (parsed.ctaLabel || isFreshDoc) {
+      setFormCtaLabel(parsed.ctaLabel);
+    }
+    if (parsed.ctaUrl || isFreshDoc) {
+      setFormCtaUrl(parsed.ctaUrl);
+    }
+    if (parsed.hasFrontmatter || isFreshDoc) {
+      setFormIsPublic(parsed.isPublic);
+    }
+
+    setFormError('');
+    setEditorMode('write');
+    setAiImportError('');
+    setAiRawInput('');
+    setAiSheetOpen(false);
+    showToast(sourceLabel ? `Imported ${sourceLabel}` : 'Organized! Review & Save');
+    return true;
+  };
+
+  const handleAiFileSelect = async (file) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setAiRawInput(text);
+      applyParsedAiDoc(text, file.name);
+    } catch {
+      setAiImportError('Could not read the selected file.');
+    }
+  };
+
   const inputClass = dark
     ? 'w-full rounded-[14px] bg-white/[0.08] px-3.5 py-2.5 text-[14px] text-white placeholder:text-white/40 border border-white/10 focus:bg-white/[0.12] focus:border-[#64D2FF]/60 focus:outline-none'
     : 'w-full rounded-[14px] bg-white/60 px-3.5 py-2.5 text-[14px] text-[#1D1D1F] placeholder:text-[#6E6E73] border border-white/80 focus:bg-white/85 focus:border-[#007AFF]/50 focus:outline-none';
@@ -662,7 +738,16 @@ export default function AdminPage({ user, dark, onToggleDark }) {
                   {docs.length} &middot; {totalViews} opens &middot; {settings.ad_clicks || 0} clicks
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openAiSheet}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-[12px] font-semibold transition-transform duration-150 active:scale-[0.95]"
+                  style={getGlassStyle(dark, 'pill')}
+                >
+                  <Wand2 className="h-3.5 w-3.5 text-[#007AFF]" />
+                  <span>AI Import</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setAdSheetOpen(true)}
@@ -1295,6 +1380,7 @@ export default function AdminPage({ user, dark, onToggleDark }) {
               type="button"
               onClick={() => setFormSlug(generateRandomSlug())}
               aria-label="Random slug"
+              title="Random slug"
               className={`flex h-10 w-10 items-center justify-center rounded-[14px] transition-transform active:scale-95 ${
                 dark
                   ? 'bg-white/12 text-white border border-white/15'
@@ -1302,6 +1388,19 @@ export default function AdminPage({ user, dark, onToggleDark }) {
               }`}
             >
               <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={openAiSheet}
+              title="Copy AI Prompt or import a .md file"
+              className={`inline-flex h-10 items-center gap-1.5 rounded-[14px] px-3 text-[12px] font-semibold transition-transform active:scale-95 ${
+                dark
+                  ? 'bg-[#0A84FF]/20 text-[#64D2FF] border border-[#64D2FF]/30 hover:bg-[#0A84FF]/30'
+                  : 'bg-[#007AFF]/10 text-[#007AFF] border border-[#007AFF]/20 hover:bg-[#007AFF]/16'
+              }`}
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI / .md</span>
             </button>
           </div>
 
@@ -1553,6 +1652,186 @@ export default function AdminPage({ user, dark, onToggleDark }) {
               )}
               <span>Save &amp; Copy</span>
             </button>
+          </div>
+        </div>
+      </LiquidGlassSheet>
+
+      {/* AI Prompt & .md Import Sheet */}
+      <LiquidGlassSheet
+        isOpen={aiSheetOpen}
+        onClose={() => setAiSheetOpen(false)}
+        title="AI Prompt & .md Import"
+        dark={dark}
+        size="lg"
+      >
+        <div className="space-y-4">
+          {/* Step 1: Copy AI Prompt */}
+          <div
+            className={`rounded-[18px] border p-4 ${
+              dark ? 'bg-white/[0.05] border-white/12' : 'bg-white/65 border-white/90'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[13.5px] font-semibold tracking-[-0.01em]">
+                  1. Copy AI Instruction
+                </p>
+                <p
+                  className={`mt-0.5 text-[12px] ${
+                    dark ? 'text-white/60' : 'text-[#515154]'
+                  }`}
+                >
+                  Paste this at the end of your ChatGPT, Gemini, or Claude prompt.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyAiPrompt}
+                className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold text-white transition-all active:scale-95"
+                style={{
+                  background: aiPromptCopied
+                    ? 'linear-gradient(145deg, #34C759 0%, #248A3D 100%)'
+                    : 'linear-gradient(145deg, #38BDF8 0%, #007AFF 100%)',
+                  boxShadow:
+                    'inset 0 1px 1px rgba(255,255,255,0.4), 0 6px 16px rgba(0,122,255,0.28)',
+                }}
+              >
+                {aiPromptCopied ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 stroke-[2.4]" />
+                    <span>Copied Prompt</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Copy AI Prompt</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <pre
+              className={`mt-3 max-h-32 overflow-y-auto rounded-[12px] border p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap ${
+                dark
+                  ? 'bg-black/35 border-white/10 text-white/70'
+                  : 'bg-[#0F172A]/[0.04] border-black/[0.06] text-[#3A3A3C]'
+              }`}
+            >
+              {DM_DOCS_AI_PROMPT}
+            </pre>
+          </div>
+
+          {/* Step 2: Upload .md or Paste Output */}
+          <div
+            className={`rounded-[18px] border p-4 space-y-3 ${
+              dark ? 'bg-white/[0.05] border-white/12' : 'bg-white/65 border-white/90'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[13.5px] font-semibold tracking-[-0.01em]">
+                  2. Drop .md File or Paste AI Output
+                </p>
+                <p
+                  className={`mt-0.5 text-[12px] ${
+                    dark ? 'text-white/60' : 'text-[#515154]'
+                  }`}
+                >
+                  Title, slug, code blocks &amp; CTA will auto-organize into the editor.
+                </p>
+              </div>
+              <input
+                ref={aiFileInputRef}
+                type="file"
+                accept=".md,.markdown,.txt,text/markdown,text/plain"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  handleAiFileSelect(file);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => aiFileInputRef.current?.click()}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-transform active:scale-95 ${
+                  dark
+                    ? 'bg-white/12 text-white border border-white/15 hover:bg-white/18'
+                    : 'bg-white text-[#1D1D1F] border border-black/[0.08] hover:bg-white/90'
+                }`}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span>Choose .md / .txt</span>
+              </button>
+            </div>
+
+            {aiImportError && (
+              <div className="rounded-[12px] bg-[#FF3B30]/15 border border-[#FF3B30]/30 px-3 py-2 text-[12px] font-medium text-[#FF453A]">
+                {aiImportError}
+              </div>
+            )}
+
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setAiDragging(true);
+              }}
+              onDragLeave={() => setAiDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setAiDragging(false);
+                const file = e.dataTransfer?.files?.[0];
+                if (file) handleAiFileSelect(file);
+              }}
+              className={`rounded-[14px] border transition-colors ${
+                aiDragging
+                  ? dark
+                    ? 'border-[#64D2FF] bg-[#0A84FF]/15'
+                    : 'border-[#007AFF] bg-[#007AFF]/10'
+                  : dark
+                    ? 'border-white/10 bg-black/30'
+                    : 'border-black/[0.08] bg-white/80'
+              }`}
+            >
+              <textarea
+                rows={6}
+                value={aiRawInput}
+                onChange={(e) => {
+                  setAiRawInput(e.target.value);
+                  if (aiImportError) setAiImportError('');
+                }}
+                placeholder="Paste AI Markdown here, or drag & drop a .md file..."
+                className={`w-full resize-y bg-transparent px-3.5 py-3 font-mono text-[12px] leading-relaxed focus:outline-none ${
+                  dark
+                    ? 'text-white placeholder:text-white/35'
+                    : 'text-[#1D1D1F] placeholder:text-[#6E6E73]'
+                }`}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+              <span
+                className={`inline-flex items-center gap-1.5 text-[11px] ${
+                  dark ? 'text-white/45' : 'text-[#6E6E73]'
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>Supports YAML frontmatter &amp; standard Markdown</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => applyParsedAiDoc(aiRawInput)}
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-semibold text-white transition-transform active:scale-95"
+                style={{
+                  background: 'linear-gradient(145deg, #38BDF8 0%, #007AFF 100%)',
+                  boxShadow:
+                    'inset 0 1px 1px rgba(255,255,255,0.45), 0 6px 18px rgba(0,122,255,0.32)',
+                }}
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                <span>Organize &amp; Open Editor</span>
+              </button>
+            </div>
           </div>
         </div>
       </LiquidGlassSheet>

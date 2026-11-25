@@ -437,6 +437,27 @@ function renderTextWithLinks(text, keyPrefix, dark) {
   return nodes.length > 0 ? nodes : text;
 }
 
+function renderTextWithBoldAndLinks(text, keyPrefix, dark) {
+  const boldParts = text.split(/(\*\*[^*\n]+\*\*)/g);
+  return boldParts.map((seg, bIdx) => {
+    if (seg.startsWith('**') && seg.endsWith('**') && seg.length > 4) {
+      return (
+        <strong
+          key={`${keyPrefix}-b-${bIdx}`}
+          className={`font-semibold ${dark ? 'text-white' : 'text-[#0F172A]'}`}
+        >
+          {renderTextWithLinks(seg.slice(2, -2), `${keyPrefix}-b-${bIdx}`, dark)}
+        </strong>
+      );
+    }
+    return (
+      <React.Fragment key={`${keyPrefix}-t-${bIdx}`}>
+        {renderTextWithLinks(seg, `${keyPrefix}-t-${bIdx}`, dark)}
+      </React.Fragment>
+    );
+  });
+}
+
 function renderFormattedLine(line, lineIndex, dark) {
   const inlineCodeParts = line.split(/(`[^`\n]+`)/g);
   return inlineCodeParts.map((part, idx) => {
@@ -456,7 +477,7 @@ function renderFormattedLine(line, lineIndex, dark) {
     }
     return (
       <React.Fragment key={`${lineIndex}-seg-${idx}`}>
-        {renderTextWithLinks(part, `${lineIndex}-${idx}`, dark)}
+        {renderTextWithBoldAndLinks(part, `${lineIndex}-${idx}`, dark)}
       </React.Fragment>
     );
   });
@@ -661,7 +682,74 @@ export function DocContentRenderer({ content, dark }) {
         }
         const trimmed = block.text.trim();
         if (!trimmed) return <div key={block.key} className="h-1.5" />;
-        if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+
+        if (/^(?:---|\*\*\*)$/.test(trimmed)) {
+          return (
+            <hr
+              key={block.key}
+              className={`my-2 border-t ${
+                dark ? 'border-white/12' : 'border-black/[0.08]'
+              }`}
+            />
+          );
+        }
+
+        const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)$/);
+        if (headingMatch) {
+          const level = headingMatch[1].length;
+          const headingText = headingMatch[2];
+          const headingClass =
+            level === 1
+              ? 'pt-1.5 text-[19px] font-bold tracking-[-0.025em]'
+              : level === 2
+                ? 'pt-1.5 text-[17px] font-bold tracking-[-0.02em]'
+                : 'pt-1 text-[15.5px] font-semibold tracking-[-0.015em]';
+          return (
+            <h3
+              key={block.key}
+              className={`${headingClass} leading-snug break-words [overflow-wrap:anywhere] ${
+                dark ? 'text-white' : 'text-[#0F172A]'
+              }`}
+            >
+              {renderFormattedLine(headingText, index, dark)}
+            </h3>
+          );
+        }
+
+        if (trimmed.startsWith('> ')) {
+          return (
+            <div
+              key={block.key}
+              className={`rounded-r-[12px] border-l-2 px-3 py-2 text-[14px] ${
+                dark
+                  ? 'border-[#64D2FF]/70 bg-white/[0.05] text-white/85'
+                  : 'border-[#007AFF]/70 bg-white/70 text-[#3A3A3C]'
+              }`}
+            >
+              {renderFormattedLine(trimmed.slice(2), index, dark)}
+            </div>
+          );
+        }
+
+        const numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+        if (numberedMatch) {
+          return (
+            <div key={block.key} className="flex min-w-0 items-start gap-2.5 pl-0.5">
+              <span
+                className={`mt-0.5 min-w-[1.25rem] shrink-0 font-mono text-[13px] font-semibold tabular-nums ${
+                  dark ? 'text-[#64D2FF]' : 'text-[#007AFF]'
+                }`}
+              >
+                {numberedMatch[1]}.
+              </span>
+              <p className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+                {renderFormattedLine(numberedMatch[2], index, dark)}
+              </p>
+            </div>
+          );
+        }
+
+        if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
           return (
             <div key={block.key} className="flex min-w-0 items-start gap-2.5 pl-0.5">
               <span

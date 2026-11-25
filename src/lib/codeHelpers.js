@@ -197,6 +197,9 @@ export function hasCodeBlock(content) {
 export function getDocSnippet(content) {
   return (content || '')
     .replace(/^\s*```[a-zA-Z0-9_+-]*\s*$/gm, '')
+    .replace(/^\s*#{1,3}\s+/gm, '')
+    .replace(/^\s*>\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\n{2,}/g, '\n')
     .trim();
 }
