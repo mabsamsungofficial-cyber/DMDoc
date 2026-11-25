@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { X, Sparkles, ArrowUpRight, Zap, Copy, Check, Code2 } from 'lucide-react';
 import { Highlight, Prism, themes } from 'prism-react-renderer';
 import { APPLE_SPRING, copyTextSafe, getGlassStyle } from '../lib/utils';
@@ -567,7 +568,7 @@ function CodeBlock({ code, lang, dark }) {
       <Highlight theme={themes.vsDark} code={code} language={prism}>
         {({ className, style, tokens, getLineProps, getTokenProps }) => (
           <pre
-            className={`${className} m-0 overflow-x-auto py-3 font-mono text-[12.5px] sm:text-[13px] leading-[1.6]`}
+            className={`${className} m-0 overflow-x-auto overscroll-x-contain py-3 font-mono text-[12.5px] sm:text-[13px] leading-[1.6]`}
             style={{ ...style, backgroundColor: 'transparent' }}
           >
             <code className="block min-w-full w-max">
@@ -831,5 +832,26 @@ export function LiquidGlassAdSlot({ settings, dark, onAdClick, isPreview = false
         </p>
       )}
     </a>
+  );
+}
+
+export function LegalLinks({ dark, className = '' }) {
+  const linkClass = `transition-colors ${
+    dark ? 'hover:text-white/80' : 'hover:text-[#1D1D1F]'
+  }`;
+  return (
+    <div
+      className={`flex items-center justify-center gap-2 text-[11px] font-medium ${
+        dark ? 'text-white/45' : 'text-[#6E6E73]'
+      } ${className}`}
+    >
+      <Link to="/privacy" className={linkClass}>
+        Privacy Policy
+      </Link>
+      <span aria-hidden="true">&middot;</span>
+      <Link to="/copyright" className={linkClass}>
+        Copyright
+      </Link>
+    </div>
   );
 }

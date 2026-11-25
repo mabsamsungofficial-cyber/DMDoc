@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { REMEMBER_ME_KEY, SAVED_EMAIL_KEY } from '../lib/utils';
-import { AmbientBackdrop, LiquidGlassCard } from '../components/LiquidGlass';
+import { AmbientBackdrop, LegalLinks, LiquidGlassCard } from '../components/LiquidGlass';
 import { DMDocLogo } from '../components/DMDocLogo';
 import { MabArenaBrand } from '../components/MabArenaBrand';
 
@@ -195,8 +195,9 @@ export default function LoginPage({ dark }) {
           </button>
         </form>
       </LiquidGlassCard>
-      <div className="relative z-10 pt-6 pb-[env(safe-area-inset-bottom)]">
+      <div className="relative z-10 flex flex-col items-center gap-2.5 pt-6 pb-[env(safe-area-inset-bottom)]">
         <MabArenaBrand dark={dark} size="md" />
+        <LegalLinks dark={dark} />
       </div>
     </div>
   );

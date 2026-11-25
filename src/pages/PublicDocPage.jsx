@@ -6,6 +6,7 @@ import { copyTextSafe, formatRelativeDate, getGlassStyle } from '../lib/utils';
 import {
   AmbientBackdrop,
   DocContentRenderer,
+  LegalLinks,
   LiquidGlassAdSlot,
 } from '../components/LiquidGlass';
 import { MabArenaBrand } from '../components/MabArenaBrand';
@@ -198,8 +199,9 @@ export default function PublicDocPage({ dark, onToggleDark }) {
           )}
         </div>
 
-        <div className="mt-8 flex justify-center pb-[env(safe-area-inset-bottom)]">
+        <div className="mt-8 flex flex-col items-center gap-2.5 pb-[env(safe-area-inset-bottom)]">
           <MabArenaBrand dark={dark} size="sm" />
+          <LegalLinks dark={dark} />
         </div>
       </div>
     </div>

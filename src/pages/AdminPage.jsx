@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Plus,
   Copy,
@@ -25,10 +26,15 @@ import {
   Code2,
   Terminal,
   List,
+  Menu,
+  ShieldCheck,
+  Copyright,
+  Download,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
   APPLE_SPRING,
+  APP_VERSION,
   copyTextSafe,
   formatRelativeDate,
   generateRandomSlug,
@@ -57,7 +63,6 @@ import { DMDocLogo } from '../components/DMDocLogo';
 import { MabArenaBrand } from '../components/MabArenaBrand';
 import {
   IosInstallModal,
-  PwaInstallButton,
   usePwaInstall,
 } from '../components/PwaControls';
 
@@ -91,6 +96,8 @@ export default function AdminPage({ user, dark, onToggleDark }) {
   const [toast, setToast] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const { canInstall, promptInstall, iosHintOpen, closeIosHint } = usePwaInstall();
 
   const [formTitle, setFormTitle] = useState('');
@@ -112,6 +119,24 @@ export default function AdminPage({ user, dark, onToggleDark }) {
     const t = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(t);
   }, [toast]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPointerDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
 
   const fetchAll = async () => {
     if (!supabase || !user) return;
@@ -445,34 +470,178 @@ export default function AdminPage({ user, dark, onToggleDark }) {
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {canInstall && (
-              <PwaInstallButton dark={dark} onClick={promptInstall} />
+          <div ref={menuRef} className="relative flex items-center">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
+                menuOpen
+                  ? dark
+                    ? 'bg-white/24 text-white'
+                    : 'bg-white text-[#1D1D1F] shadow-sm'
+                  : dark
+                    ? 'bg-white/12 text-white/85 hover:bg-white/20'
+                    : 'bg-white/70 text-[#1D1D1F] hover:bg-white'
+              }`}
+            >
+              {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
+
+            {menuOpen && (
+              <div
+                role="menu"
+                className="anim-modal absolute right-0 top-[calc(100%+10px)] z-50 w-64 origin-top-right overflow-hidden rounded-[24px] p-2"
+                style={getGlassStyle(dark, 'sheet')}
+              >
+                <div className="space-y-1">
+                  <div
+                    role="menuitem"
+                    onClick={onToggleDark}
+                    className={`flex cursor-pointer items-center justify-between rounded-[16px] px-3 py-2.5 transition-colors ${
+                      dark ? 'hover:bg-white/[0.08]' : 'hover:bg-black/[0.04]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                          dark
+                            ? 'bg-amber-300/15 text-amber-300'
+                            : 'bg-[#007AFF]/12 text-[#007AFF]'
+                        }`}
+                      >
+                        {dark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+                      </span>
+                      <span className="text-[13px] font-medium">Night Mode</span>
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <AppleSpringSwitch checked={dark} onChange={onToggleDark} dark={dark} />
+                    </div>
+                  </div>
+
+                  {canInstall && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        promptInstall();
+                      }}
+                      className={`flex w-full items-center justify-between rounded-[16px] px-3 py-2.5 text-left transition-colors ${
+                        dark ? 'hover:bg-white/[0.08]' : 'hover:bg-black/[0.04]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                            dark
+                              ? 'bg-[#0A84FF]/20 text-[#64D2FF]'
+                              : 'bg-[#007AFF]/12 text-[#007AFF]'
+                          }`}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="text-[13px] font-medium">Install App</span>
+                      </div>
+                      <ChevronRight
+                        className={`h-3.5 w-3.5 ${dark ? 'text-white/40' : 'text-[#86868B]'}`}
+                      />
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setLogoutConfirmOpen(true);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-[16px] px-3 py-2.5 text-left transition-colors ${
+                      dark ? 'hover:bg-[#FF453A]/15' : 'hover:bg-[#FF3B30]/8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                          dark
+                            ? 'bg-[#FF453A]/18 text-[#FF6961]'
+                            : 'bg-[#FF3B30]/12 text-[#FF3B30]'
+                        }`}
+                      >
+                        <LogOut className="h-3.5 w-3.5" />
+                      </span>
+                      <span
+                        className={`text-[13px] font-medium ${
+                          dark ? 'text-[#FF6961]' : 'text-[#FF3B30]'
+                        }`}
+                      >
+                        Sign Out
+                      </span>
+                    </div>
+                  </button>
+                </div>
+
+                <div
+                  className={`my-1.5 border-t ${
+                    dark ? 'border-white/10' : 'border-black/[0.06]'
+                  }`}
+                />
+
+                <div className="space-y-0.5">
+                  <Link
+                    to="/privacy"
+                    role="menuitem"
+                    onClick={() => setMenuOpen(false)}
+                    className={`flex items-center justify-between rounded-[14px] px-3 py-2 text-[12.5px] font-medium transition-colors ${
+                      dark
+                        ? 'text-white/80 hover:bg-white/[0.08] hover:text-white'
+                        : 'text-[#3A3A3C] hover:bg-black/[0.04] hover:text-[#1D1D1F]'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ShieldCheck className="h-3.5 w-3.5 opacity-75" />
+                      <span>Privacy Policy</span>
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 opacity-45" />
+                  </Link>
+                  <Link
+                    to="/copyright"
+                    role="menuitem"
+                    onClick={() => setMenuOpen(false)}
+                    className={`flex items-center justify-between rounded-[14px] px-3 py-2 text-[12.5px] font-medium transition-colors ${
+                      dark
+                        ? 'text-white/80 hover:bg-white/[0.08] hover:text-white'
+                        : 'text-[#3A3A3C] hover:bg-black/[0.04] hover:text-[#1D1D1F]'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Copyright className="h-3.5 w-3.5 opacity-75" />
+                      <span>Copyright &amp; Terms</span>
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 opacity-45" />
+                  </Link>
+                </div>
+
+                <div
+                  className={`mt-1.5 flex items-center justify-between border-t px-3 pt-2 pb-1 text-[10.5px] ${
+                    dark
+                      ? 'border-white/10 text-white/45'
+                      : 'border-black/[0.06] text-[#6E6E73]'
+                  }`}
+                >
+                  <span>&copy; 2026 MAB ARENA</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-medium tabular-nums ${
+                      dark ? 'bg-white/10 text-white/70' : 'bg-black/[0.05] text-[#515154]'
+                    }`}
+                  >
+                    v{APP_VERSION}
+                  </span>
+                </div>
+              </div>
             )}
-            <button
-              type="button"
-              onClick={onToggleDark}
-              aria-label="Toggle theme"
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
-                dark
-                  ? 'bg-white/12 text-amber-300 hover:bg-white/20'
-                  : 'bg-white/70 text-[#1D1D1F] hover:bg-white'
-              }`}
-            >
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setLogoutConfirmOpen(true)}
-              aria-label="Sign out"
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${
-                dark
-                  ? 'bg-white/12 text-white/75 hover:bg-white/20'
-                  : 'bg-white/70 text-[#515154] hover:bg-white'
-              }`}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
           </div>
         </div>
       </header>

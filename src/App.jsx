@@ -5,6 +5,7 @@ import { THEME_KEY } from './lib/utils';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import PublicDocPage from './pages/PublicDocPage';
+import LegalPage from './pages/LegalPage';
 import { OfflineBanner } from './components/PwaControls';
 import { AmbientBackdrop } from './components/LiquidGlass';
 import { DMDocLogo } from './components/DMDocLogo';
@@ -15,8 +16,9 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [splashDone, setSplashDone] = useState(() => {
     if (typeof window === 'undefined') return true;
-    // Skip artificial splash delay for shared /d/:slug links so readers open instantly
-    return window.location.pathname.startsWith('/d/');
+    const path = window.location.pathname;
+    // Skip artificial splash delay for shared /d/:slug and legal pages so visitors open instantly
+    return path.startsWith('/d/') || path === '/privacy' || path === '/copyright';
   });
   const [dark, setDark] = useState(() => {
     try {
@@ -108,6 +110,28 @@ export default function App() {
         <Route
           path="/d/:slug"
           element={<PublicDocPage dark={dark} onToggleDark={toggleDark} />}
+        />
+        <Route
+          path="/privacy"
+          element={
+            <LegalPage
+              type="privacy"
+              dark={dark}
+              onToggleDark={toggleDark}
+              fallbackPath={session ? '/admin' : '/login'}
+            />
+          }
+        />
+        <Route
+          path="/copyright"
+          element={
+            <LegalPage
+              type="copyright"
+              dark={dark}
+              onToggleDark={toggleDark}
+              fallbackPath={session ? '/admin' : '/login'}
+            />
+          }
         />
         <Route
           path="/login"

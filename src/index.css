@@ -14,6 +14,19 @@ body {
   overscroll-behavior-y: none;
 }
 
+*,
+*::before,
+*::after {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 @keyframes viewEnter {
   from {
     opacity: 0;
